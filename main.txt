@@ -1,0 +1,127 @@
+main.py
+from flask import Flask,render_template
+from flask_restful import Api,Resource,reqparse,abort,fields,marshal_with
+from flask_sqlalchemy import SQLAlchemy
+import mysql.connector
+
+
+app = Flask(__name__)
+api = Api(app)
+
+
+
+app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+mysqlconnector://root:asd%40123@localhost/novari"
+db = SQLAlchemy(app)
+
+
+
+class productMdl(db.Model):
+    
+    pID = db.Column(db.Integer,primary_key=True)
+    productName = db.Column(db.String(100),nullable=False)
+    productPrice = db.Column(db.Integer,nullable=False)
+
+    def __repr__(self):
+        return f"product id = {self.pID}, product name is {self.productName} productPrice is {self.productPrice}"
+
+
+
+
+
+
+product_put_args = reqparse.RequestParser()
+product_put_args.add_argument("pName",type = str, help="product name requiered",required=True)
+product_put_args.add_argument("pPrice",type = int, help="product name requiered",required=True)
+product_put_args.add_argument("pID",type = int, help="product name requiered",required=True)
+
+product_patch_args = reqparse.RequestParser()
+product_patch_args.add_argument("pName",type = str, help="product name requiered")
+product_patch_args.add_argument("pPrice",type = int, help="product name requiered")
+product_patch_args.add_argument("pID",type = int, help="product name requiered")
+
+
+
+resource_fields={
+         'pID': fields.Integer,
+         'productName' : fields.String,
+         'productPrice' : fields.Integer
+
+         }
+
+
+
+class Product(Resource):
+    @marshal_with(resource_fields)
+    def get(self,pID):
+        result = productMdl.query.get(pID)
+        if not result:
+            abort(404,message='could not find this porudct..')
+        return result
+    
+
+    @marshal_with(resource_fields)
+    def put(self,pID):
+
+        args = product_put_args.parse_args()
+        result = productMdl.query.filter_by(pID=pID).first()
+        if result:
+            abort(409,message='video id already exits')
+        product = productMdl(pID=pID,productName=args['pName'],productPrice=args['pPrice'])
+        db.session.add(product)
+        db.session.commit()
+        return product , 201
+    
+
+    @marshal_with(resource_fields)
+    def patch(self,pID):
+        args = product_patch_args.parse_args()
+        result = productMdl.query.filter_by(pID=pID).first()
+        if not result:
+            abort(404,message='could not find this porudct..')
+        if args['pID']:
+           result.pID = args['pID']
+        if args['pName']:
+           result.productName = args['pName']
+        if args['pPrice']:
+           result.productPrice = args['pPrice']
+        db.session.commit()
+        return result
+
+    @marshal_with(resource_fields)
+    def delete(self,pID):
+
+        result = productMdl.query.filter_by(pID=pID).first()
+        if not result:
+          abort(404,message='could not find this porudct..')
+        db.session.delete(result)
+        db.session.commit()
+
+api.add_resource(Product,"/products/<int:pID>")
+
+@app.route("/")
+def homepage():
+    return render_template("homepage.html", pagetitle = "Novari - Fashion for the Modern Duo")
+
+@app.route("/index.html")
+def homepage1():
+   
+    return render_template("homepage.html", pagetitle = "Novari - Fashion for the Modern Duo")
+
+
+@app.route("/cart.html")
+def cart():
+    return render_template("cart.html", pagetitle = "cart")
+
+
+@app.route("/contact.html")
+def contact():
+    return render_template("contact.html", pagetitle = "contact")
+
+
+@app.route("/shop.html")
+def shop():
+    return render_template("shop.html", pagetitle = "shop",css = "style1.css")
+
+if(__name__ =="__main__"):
+    app.run(host="0.0.0.0", port=5000, debug=True)
+

@@ -1,18 +1,20 @@
 #!/bin/bash
+set -e
 
 echo "🔄 Starting Flask app behind Gunicorn..."
 sudo systemctl start mariadb
-# Move to your project directory
-cd ~/novaribb || {
+# Determine project directory (directory of this script)
+PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$PROJECT_DIR" || {
   echo "❌ Project folder not found!"
   exit 1
 }
 
 # Activate virtual environment
-if [ -f ~/flaskenv/bin/activate ]; then
-  source ~/flaskenv/bin/activate
+if [ -f "$PROJECT_DIR/flaskenv/bin/activate" ]; then
+  source "$PROJECT_DIR/flaskenv/bin/activate"
 else
-  echo "❌ Virtual environment not found at ~/flaskenv"
+  echo "❌ Virtual environment not found at $PROJECT_DIR/flaskenv"
   exit 1
 fi
 
